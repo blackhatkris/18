@@ -94,13 +94,13 @@ async def cmd_start(message: Message, command: CommandObject):
 async def send_main_menu(message: Message):
     """After age + channel check, always show only Get Collection"""
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🎲 Get Collection", callback_data="get_collection")]
+        [InlineKeyboardButton(text="🎲 Get Collection🍑", callback_data="get_collection")]
     ])
     await message.answer(
         "🏠 **Welcome to RareAccess Bot\!** 🎉\n\n"
         "To get started, join our channel and confirm once you've joined\! 🚀\n\n"
         "🔥 Enjoy exclusive updates and new leaks\!\n\n"
-        "💎 **Note:** You have only **10 credits** to use or use referral program\.\n\n"
+        "💎 **Note:** You get daily **10 credits** to use for more collection use referral program and paid credits\.\n\n"
         "Let's keep fapping\! ✊💦💦\n\n"
         "Tap below to get your collection:",
         reply_markup=kb, parse_mode="MarkdownV2"
