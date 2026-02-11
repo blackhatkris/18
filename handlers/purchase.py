@@ -10,9 +10,10 @@ class PurchaseStates(StatesGroup):
     waiting_gift_code = State()
 
 CREDIT_PACKAGES = [
-    {"credits": 50, "label": "50 Credits — ₹49"},
-    {"credits": 150, "label": "150 Credits — ₹99"},
-    {"credits": 500, "label": "500 Credits — ₹249"},
+    {"credits": 50, "label": "50 Credits — ₹20"},
+    {"credits": 150, "label": "150 Credits — ₹50"},
+    {"credits": 300, "label": "300 Credits — ₹100"},
+    {"credits": 700, "label": "700 Credits — ₹200"},
 ]
 
 @router.callback_query(F.data == "buy_credits")
