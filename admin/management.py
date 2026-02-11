@@ -96,7 +96,6 @@ async def remove_channel_do(callback: CallbackQuery):
     await db.execute("DELETE FROM forced_channels WHERE channel_id = ?", (ch_id,))
     await db.commit()
     await callback.answer("✅ Channel removed!")
-    # Refresh list
     await remove_channel_start(callback, None)
 
 # --- Add Collection ---
@@ -106,10 +105,10 @@ async def add_collection_start(callback: CallbackQuery, state: FSMContext):
     await state.set_state(AddCollectionStates.waiting)
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="adm_menu")]])
     await callback.message.edit_text(
-        "📦 **Add Collection**\n\n"
+        "📦 *Add Collection*\n\n"
         "Send: `TAG file_id1,file_id2,...`\n\n"
         "Example: `premium AgACAgIAAxk,AgACAgIBBxk`\n\n"
-        "Forward media to @userinfobot to get file_ids.",
+        "Forward media to @userinfobot to get file\\_ids.",
         reply_markup=kb, parse_mode="Markdown"
     )
 
