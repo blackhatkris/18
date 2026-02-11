@@ -35,6 +35,9 @@ async def show_admin_menu(message_or_callback):
         [
             InlineKeyboardButton(text="⚙ Settings", callback_data="adm_settings"),
             InlineKeyboardButton(text="💳 Gift Cards", callback_data="adm_gift_cards")
+        ],
+        [
+            InlineKeyboardButton(text="🔞 Dark Content", callback_data="adm_dark_collections")
         ]
     ])
     text = "🛠 **Admin Panel**\n\nChoose an action:"
