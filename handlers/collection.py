@@ -14,11 +14,21 @@ async def get_collection_handler(callback: CallbackQuery):
 
     if bal < COLLECTION_COST:
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="💳 Buy Credits", callback_data="buy_credits")],
-            [InlineKeyboardButton(text="🔙 Back", callback_data="main_menu")]
+            [InlineKeyboardButton(text="🎁 Claim Daily Credits", callback_data="daily_claim")],
+            [
+                InlineKeyboardButton(text="👥 Referral", callback_data="referral"),
+                InlineKeyboardButton(text="🎟 Promo Code", callback_data="enter_promo")
+            ],
+            [
+                InlineKeyboardButton(text="💳 Buy Credits", callback_data="buy_credits"),
+                InlineKeyboardButton(text="💰 Wallet", callback_data="wallet")
+            ],
+            [InlineKeyboardButton(text="❓ Help", callback_data="help")]
         ])
         await callback.message.edit_text(
-            f"❌ Not enough credits!\n\nYou need **{COLLECTION_COST}** credits.\nYour balance: **{bal}**",
+            f"❌ **Not enough credits!**\n\n"
+            f"You need **{COLLECTION_COST}** credits.\nYour balance: **{bal}**\n\n"
+            f"Earn or buy credits below:",
             reply_markup=kb, parse_mode="Markdown"
         )
         return
@@ -43,7 +53,6 @@ async def get_collection_handler(callback: CallbackQuery):
         parse_mode="Markdown"
     )
 
-    # Send media files
     sent_messages = []
     for file_id in collection["file_ids"]:
         try:
@@ -56,7 +65,6 @@ async def get_collection_handler(callback: CallbackQuery):
             except Exception:
                 pass
 
-    # Schedule auto-delete
     if sent_messages:
         asyncio.create_task(_auto_delete(sent_messages, AUTO_DELETE_MINUTES * 60))
 
