@@ -91,10 +91,20 @@ async def send_main_menu(message: Message):
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🎲 Get Collection", callback_data="get_collection")]
     ])
+async def send_main_menu(message: Message):
+    """After age + channel check, always show only Get Collection"""
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🎲 Get Collection", callback_data="get_collection")]
+    ])
     await message.answer(
-        "🏠 **Welcome!**\n\nTap below to get your collection:",
-        reply_markup=kb, parse_mode="Markdown"
+        "🏠 **Welcome to RareAccess Bot\!** 🎉\n\n"
+        "🔥 Enjoy exclusive updates and new leaks\!\n\n"
+        "💎 **Note:** You get Daily 10 Credits to use or use referral or payment program\.\n\n"
+        "Let's keep fapping\! ✊💦💦\n\n"
+        "Tap below to get your collection:",
+        reply_markup=kb, parse_mode="MarkdownV2"
     )
+
 
 @router.callback_query(F.data == "age_verify")
 async def age_verified(callback: CallbackQuery):
