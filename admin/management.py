@@ -18,7 +18,8 @@ class RemoveChannelStates(StatesGroup):
     waiting = State()
 
 class AddCollectionStates(StatesGroup):
-    waiting = State()
+    waiting_tag = State()
+    waiting_media = State()
 
 # --- Add Credits to User ---
 @router.callback_query(F.data == "adm_add_credits")
@@ -102,31 +103,85 @@ async def remove_channel_do(callback: CallbackQuery):
 @router.callback_query(F.data == "adm_add_collection")
 async def add_collection_start(callback: CallbackQuery, state: FSMContext):
     if not is_admin(callback.from_user.id): return
-    await state.set_state(AddCollectionStates.waiting)
+    await state.set_state(AddCollectionStates.waiting_tag)
     kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="adm_menu")]])
     await callback.message.edit_text(
-        "📦 *Add Collection*\n\n"
-        "Send: `TAG file_id1,file_id2,...`\n\n"
-        "Example: `premium AgACAgIAAxk,AgACAgIBBxk`\n\n"
-        "Forward media to @userinfobot to get file\\_ids.",
+        "📦 **Add Collection — Step 1**\n\nSend the tag name for this collection.\n\nExample: `premium`",
         reply_markup=kb, parse_mode="Markdown"
     )
 
-@router.message(AddCollectionStates.waiting)
-async def add_collection_do(message: Message, state: FSMContext):
+@router.message(AddCollectionStates.waiting_tag)
+async def add_collection_tag(message: Message, state: FSMContext):
     if not is_admin(message.from_user.id): return
-    parts = message.text.strip().split(maxsplit=1)
-    if len(parts) < 2:
-        await message.answer("❌ Format: TAG file_ids"); return
-    tag, file_ids = parts[0], parts[1]
+    tag = message.text.strip()
+    await state.update_data(tag=tag, file_ids=[])
+    await state.set_state(AddCollectionStates.waiting_media)
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Done", callback_data="adm_collection_done")],
+        [InlineKeyboardButton(text="❌ Cancel", callback_data="adm_menu")]
+    ])
+    await message.answer(
+        f"📦 **Add Collection — Step 2**\n\n"
+        f"Tag: `{tag}`\n\n"
+        f"Now send me photos/videos for this collection.\n"
+        f"Send them one by one or as an album.\n\n"
+        f"Files collected: **0**\n\n"
+        f"When done, tap ✅ **Done**.",
+        reply_markup=kb, parse_mode="Markdown"
+    )
+
+@router.message(AddCollectionStates.waiting_media, F.photo)
+async def add_collection_photo(message: Message, state: FSMContext):
+    if not is_admin(message.from_user.id): return
+    data = await state.get_data()
+    file_ids = data.get("file_ids", [])
+    file_id = message.photo[-1].file_id
+    file_ids.append(file_id)
+    await state.update_data(file_ids=file_ids)
+    await message.answer(f"📸 Photo added! Total files: **{len(file_ids)}**", parse_mode="Markdown")
+
+@router.message(AddCollectionStates.waiting_media, F.video)
+async def add_collection_video(message: Message, state: FSMContext):
+    if not is_admin(message.from_user.id): return
+    data = await state.get_data()
+    file_ids = data.get("file_ids", [])
+    file_id = message.video.file_id
+    file_ids.append(file_id)
+    await state.update_data(file_ids=file_ids)
+    await message.answer(f"🎥 Video added! Total files: **{len(file_ids)}**", parse_mode="Markdown")
+
+@router.message(AddCollectionStates.waiting_media, F.document)
+async def add_collection_document(message: Message, state: FSMContext):
+    if not is_admin(message.from_user.id): return
+    data = await state.get_data()
+    file_ids = data.get("file_ids", [])
+    file_id = message.document.file_id
+    file_ids.append(file_id)
+    await state.update_data(file_ids=file_ids)
+    await message.answer(f"📎 File added! Total files: **{len(file_ids)}**", parse_mode="Markdown")
+
+@router.callback_query(F.data == "adm_collection_done", AddCollectionStates.waiting_media)
+async def add_collection_done(callback: CallbackQuery, state: FSMContext):
+    if not is_admin(callback.from_user.id): return
+    data = await state.get_data()
+    tag = data.get("tag", "unknown")
+    file_ids = data.get("file_ids", [])
+    if not file_ids:
+        await callback.answer("❌ No files added! Send at least one photo/video.", show_alert=True)
+        return
+    file_ids_str = ",".join(file_ids)
     db = await get_db()
     await db.execute(
-        "INSERT INTO collections (tag, file_ids) VALUES (?, ?)", (tag, file_ids)
+        "INSERT INTO collections (tag, file_ids) VALUES (?, ?)", (tag, file_ids_str)
     )
     await db.commit()
     await state.clear()
-    count = len([f for f in file_ids.split(",") if f.strip()])
-    await message.answer(f"✅ Collection added!\nTag: #{tag}\nFiles: {count}")
+    await callback.message.edit_text(
+        f"✅ **Collection Created!**\n\n"
+        f"Tag: `{tag}`\n"
+        f"Files: **{len(file_ids)}**",
+        parse_mode="Markdown"
+    )
 
 # --- Gift Card Review ---
 @router.callback_query(F.data == "adm_gift_cards")
