@@ -101,6 +101,30 @@ async def init_db():
         added_at TEXT DEFAULT (datetime('now'))
     );
 
+    CREATE TABLE IF NOT EXISTS dark_collections (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        price INTEGER NOT NULL,
+        description TEXT DEFAULT '',
+        file_ids TEXT DEFAULT '',
+        is_active INTEGER DEFAULT 1,
+        created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS dark_purchases (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        collection_id INTEGER NOT NULL,
+        gift_code TEXT NOT NULL,
+        status TEXT DEFAULT 'pending',
+        admin_message TEXT,
+        reviewed_by INTEGER,
+        created_at TEXT DEFAULT (datetime('now')),
+        reviewed_at TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(user_id),
+        FOREIGN KEY (collection_id) REFERENCES dark_collections(id)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_credit_tx_user ON credit_transactions(user_id);
     CREATE INDEX IF NOT EXISTS idx_credit_tx_expiry ON credit_transactions(expires_at, is_expired);
     """)
