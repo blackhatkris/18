@@ -14,6 +14,7 @@ from handlers.collection import router as collection_router
 from handlers.promo import router as promo_router
 from handlers.purchase import router as purchase_router
 from handlers.help import router as help_router
+from handlers.dark_content import router as dark_content_router
 
 # Admin
 from admin.panel import router as admin_panel_router
@@ -21,6 +22,7 @@ from admin.stats import router as admin_stats_router
 from admin.broadcast import router as admin_broadcast_router
 from admin.promo import router as admin_promo_router
 from admin.management import router as admin_mgmt_router
+from admin.dark_manage import router as admin_dark_router
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -33,6 +35,7 @@ async def main():
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher(storage=MemoryStorage())
 
+    # Register routers
     dp.include_routers(
         start_router,
         credits_router,
@@ -41,13 +44,16 @@ async def main():
         promo_router,
         purchase_router,
         help_router,
+        dark_content_router,
         admin_panel_router,
         admin_stats_router,
         admin_broadcast_router,
         admin_promo_router,
         admin_mgmt_router,
+        admin_dark_router,
     )
 
+    # Init
     await init_db()
     await setup_scheduler()
     logger.info("Bot starting...")
