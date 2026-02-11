@@ -33,7 +33,6 @@ async def main():
     bot = Bot(token=BOT_TOKEN)
     dp = Dispatcher(storage=MemoryStorage())
 
-    # Register routers
     dp.include_routers(
         start_router,
         credits_router,
@@ -49,7 +48,6 @@ async def main():
         admin_mgmt_router,
     )
 
-    # Init
     await init_db()
     await setup_scheduler()
     logger.info("Bot starting...")
