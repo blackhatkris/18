@@ -1,18 +1,40 @@
 from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.filters import CommandStart, CommandObject
+from aiogram.filters import CommandStart, CommandObject, Command
 from database.db import get_db
 from services.referral_service import generate_referral_code, process_referral
 from middlewares.channel_check import check_channels
 
 router = Router()
 
+@router.message(Command("menu"))
+async def cmd_menu(message: Message):
+    """Show full main menu via /menu command"""
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🎁 Claim Daily Credits", callback_data="daily_claim")],
+        [
+            InlineKeyboardButton(text="🎲 Get Collection", callback_data="get_collection"),
+            InlineKeyboardButton(text="💰 Wallet", callback_data="wallet")
+        ],
+        [
+            InlineKeyboardButton(text="👥 Referral", callback_data="referral"),
+            InlineKeyboardButton(text="🎟 Promo Code", callback_data="enter_promo")
+        ],
+        [
+            InlineKeyboardButton(text="💳 Buy Credits", callback_data="buy_credits"),
+            InlineKeyboardButton(text="❓ Help", callback_data="help")
+        ]
+    ])
+    await message.answer(
+        "🏠 **Main Menu**\n\nChoose an option below:",
+        reply_markup=kb, parse_mode="Markdown"
+    )
+
 @router.message(CommandStart())
 async def cmd_start(message: Message, command: CommandObject):
     user = message.from_user
     db = await get_db()
 
-    # Check if user exists
     existing = await db.execute_fetchall(
         "SELECT user_id, age_verified FROM users WHERE user_id = ?", (user.id,)
     )
@@ -26,12 +48,10 @@ async def cmd_start(message: Message, command: CommandObject):
         )
         await db.commit()
 
-        # Process referral if deep link
         if command.args and command.args.startswith("ref_"):
             referrer_code = command.args[4:]
             await process_referral(user.id, referrer_code)
 
-    # Check age verification
     row = await db.execute_fetchall(
         "SELECT age_verified FROM users WHERE user_id = ?", (user.id,)
     )
@@ -49,7 +69,6 @@ async def cmd_start(message: Message, command: CommandObject):
         )
         return
 
-    # Check forced channels
     not_joined = await check_channels(message.bot, user.id)
     if not_joined:
         buttons = []
@@ -68,23 +87,12 @@ async def cmd_start(message: Message, command: CommandObject):
     await send_main_menu(message)
 
 async def send_main_menu(message: Message):
+    """After age + channel check, always show only Get Collection"""
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🎁 Claim Daily Credits", callback_data="daily_claim")],
-        [
-            InlineKeyboardButton(text="💰 Wallet", callback_data="wallet"),
-            InlineKeyboardButton(text="🎲 Get Collection", callback_data="get_collection")
-        ],
-        [
-            InlineKeyboardButton(text="👥 Referral", callback_data="referral"),
-            InlineKeyboardButton(text="🎟 Promo Code", callback_data="enter_promo")
-        ],
-        [
-            InlineKeyboardButton(text="💳 Buy Credits", callback_data="buy_credits"),
-            InlineKeyboardButton(text="❓ Help", callback_data="help")
-        ]
+        [InlineKeyboardButton(text="🎲 Get Collection", callback_data="get_collection")]
     ])
     await message.answer(
-        "🏠 **Main Menu**\n\nWelcome! Choose an option below:",
+        "🏠 **Welcome!**\n\nTap below to get your collection:",
         reply_markup=kb, parse_mode="Markdown"
     )
 
