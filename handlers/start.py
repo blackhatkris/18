@@ -17,13 +17,14 @@ async def cmd_menu(message: Message):
             InlineKeyboardButton(text="💰 Wallet", callback_data="wallet")
         ],
         [
+            InlineKeyboardButton(text="🔞 Dark Content", callback_data="dark_content"),
+            InlineKeyboardButton(text="💳 Buy Credits", callback_data="buy_credits")
+        ],
+        [
             InlineKeyboardButton(text="👥 Referral", callback_data="referral"),
             InlineKeyboardButton(text="🎟 Promo Code", callback_data="enter_promo")
         ],
-        [
-            InlineKeyboardButton(text="💳 Buy Credits", callback_data="buy_credits"),
-            InlineKeyboardButton(text="❓ Help", callback_data="help")
-        ]
+        [InlineKeyboardButton(text="❓ Help", callback_data="help")]
     ])
     await message.answer(
         "🏠 **Main Menu**\n\nChoose an option below:",
@@ -35,6 +36,7 @@ async def cmd_start(message: Message, command: CommandObject):
     user = message.from_user
     db = await get_db()
 
+    # Check if user exists
     existing = await db.execute_fetchall(
         "SELECT user_id, age_verified FROM users WHERE user_id = ?", (user.id,)
     )
@@ -48,10 +50,12 @@ async def cmd_start(message: Message, command: CommandObject):
         )
         await db.commit()
 
+        # Process referral if deep link
         if command.args and command.args.startswith("ref_"):
             referrer_code = command.args[4:]
             await process_referral(user.id, referrer_code)
 
+    # Check age verification
     row = await db.execute_fetchall(
         "SELECT age_verified FROM users WHERE user_id = ?", (user.id,)
     )
@@ -69,6 +73,7 @@ async def cmd_start(message: Message, command: CommandObject):
         )
         return
 
+    # Check forced channels
     not_joined = await check_channels(message.bot, user.id)
     if not_joined:
         buttons = []
@@ -91,20 +96,15 @@ async def send_main_menu(message: Message):
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🎲 Get Collection", callback_data="get_collection")]
     ])
-async def send_main_menu(message: Message):
-    """After age + channel check, always show only Get Collection"""
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🎲 Get Collection", callback_data="get_collection")]
-    ])
     await message.answer(
         "🏠 **Welcome to RareAccess Bot\!** 🎉\n\n"
+        "To get started, join our channel and confirm once you've joined\! 🚀\n\n"
         "🔥 Enjoy exclusive updates and new leaks\!\n\n"
-        "💎 **Note:** You get Daily 10 Credits to use or use referral or payment program\.\n\n"
+        "💎 **Note:** You have only **10 credits** to use or use referral program\.\n\n"
         "Let's keep fapping\! ✊💦💦\n\n"
         "Tap below to get your collection:",
         reply_markup=kb, parse_mode="MarkdownV2"
     )
-
 
 @router.callback_query(F.data == "age_verify")
 async def age_verified(callback: CallbackQuery):
