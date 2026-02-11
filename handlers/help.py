@@ -40,7 +40,8 @@ HELP_TEXT = """
 • Credits are non-transferable
 
 💬 **Commands**
-/start — Main menu
+/start — Start the bot
+/menu — Main menu
 /help — This help message
 """
 
