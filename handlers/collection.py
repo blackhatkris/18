@@ -43,16 +43,9 @@ async def get_collection_handler(callback: CallbackQuery):
         await callback.answer("❌ Failed to spend credits.", show_alert=True)
         return
 
-    new_bal = await get_balance(user_id)
-    await callback.message.edit_text(
-        f"🎲 **Collection Delivered!**\n\n"
-        f"Tag: #{collection['tag']}\n"
-        f"Items: {len(collection['file_ids'])}\n"
-        f"Remaining balance: **{new_bal}** credits\n\n"
-        f"⚠️ Content will auto-delete in {AUTO_DELETE_MINUTES} minutes.",
-        parse_mode="Markdown"
-    )
+    await callback.message.delete()
 
+    # Send media files
     sent_messages = []
     for file_id in collection["file_ids"]:
         try:
@@ -60,11 +53,26 @@ async def get_collection_handler(callback: CallbackQuery):
             sent_messages.append(msg)
         except Exception:
             try:
-                msg = await callback.message.answer_document(file_id)
+                msg = await callback.message.answer_video(file_id)
                 sent_messages.append(msg)
             except Exception:
-                pass
+                try:
+                    msg = await callback.message.answer_document(file_id)
+                    sent_messages.append(msg)
+                except Exception:
+                    pass
 
+    # Final message with "More Collection" button
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🎲 More Collection", callback_data="get_collection")]
+    ])
+    final_msg = await callback.message.answer(
+        f"🔥 **LEAK COLLECTION**\n\n⚠️ Auto-deletes in {AUTO_DELETE_MINUTES} minutes.",
+        reply_markup=kb, parse_mode="Markdown"
+    )
+    sent_messages.append(final_msg)
+
+    # Schedule auto-delete
     if sent_messages:
         asyncio.create_task(_auto_delete(sent_messages, AUTO_DELETE_MINUTES * 60))
 
