@@ -22,21 +22,22 @@ async def show_admin_menu(message_or_callback):
         ],
         [
             InlineKeyboardButton(text="➕ Add Credits", callback_data="adm_add_credits"),
-            InlineKeyboardButton(text="📊 Stats", callback_data="adm_stats")
+            InlineKeyboardButton(text="🎁 Broadcast Credits", callback_data="adm_broadcast_credits")
         ],
         [
-            InlineKeyboardButton(text="👥 Users", callback_data="adm_users"),
-            InlineKeyboardButton(text="➕ Add Channel", callback_data="adm_add_channel")
+            InlineKeyboardButton(text="📊 Stats", callback_data="adm_stats"),
+            InlineKeyboardButton(text="👥 Users", callback_data="adm_users")
         ],
         [
-            InlineKeyboardButton(text="➖ Remove Channel", callback_data="adm_remove_channel"),
-            InlineKeyboardButton(text="📦 Add Collection", callback_data="adm_add_collection")
+            InlineKeyboardButton(text="➕ Add Channel", callback_data="adm_add_channel"),
+            InlineKeyboardButton(text="➖ Remove Channel", callback_data="adm_remove_channel")
         ],
         [
-            InlineKeyboardButton(text="⚙ Settings", callback_data="adm_settings"),
-            InlineKeyboardButton(text="💳 Gift Cards", callback_data="adm_gift_cards")
+            InlineKeyboardButton(text="📦 Add Collection", callback_data="adm_add_collection"),
+            InlineKeyboardButton(text="⚙ Settings", callback_data="adm_settings")
         ],
         [
+            InlineKeyboardButton(text="💳 Gift Cards", callback_data="adm_gift_cards"),
             InlineKeyboardButton(text="🔞 Dark Content", callback_data="adm_dark_collections")
         ]
     ])
