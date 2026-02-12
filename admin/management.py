@@ -2,6 +2,7 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+import asyncio
 from database.db import get_db
 from services.credit_service import add_credits
 from admin.panel import is_admin
@@ -16,6 +17,9 @@ class AddChannelStates(StatesGroup):
 
 class RemoveChannelStates(StatesGroup):
     waiting = State()
+
+class BroadcastCreditsStates(StatesGroup):
+    waiting_amount = State()
 
 class AddCollectionStates(StatesGroup):
     waiting_media = State()
@@ -267,4 +271,63 @@ async def settings_menu(callback: CallbackQuery):
         "• `CREDIT_EXPIRY_DAYS` — expiry period\n"
         "• `AUTO_DELETE_MINUTES` — auto-delete timer",
         reply_markup=kb, parse_mode="Markdown"
+    )
+
+# --- Broadcast Credits to All Users ---
+@router.callback_query(F.data == "adm_broadcast_credits")
+async def broadcast_credits_start(callback: CallbackQuery, state: FSMContext):
+    if not is_admin(callback.from_user.id): return
+    db = await get_db()
+    count = await db.execute_fetchall("SELECT COUNT(*) FROM users")
+    total_users = count[0][0] if count else 0
+    await state.set_state(BroadcastCreditsStates.waiting_amount)
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Cancel", callback_data="adm_menu")]])
+    await callback.message.edit_text(
+        f"🎁 **Broadcast Credits**\n\n"
+        f"Total users: **{total_users}**\n\n"
+        f"Send the number of credits to give to ALL users:\n"
+        f"Example: `50`",
+        reply_markup=kb, parse_mode="Markdown"
+    )
+
+@router.message(BroadcastCreditsStates.waiting_amount)
+async def broadcast_credits_do(message: Message, state: FSMContext):
+    if not is_admin(message.from_user.id): return
+    try:
+        amount = int(message.text.strip())
+        if amount <= 0:
+            raise ValueError
+    except ValueError:
+        await message.answer("❌ Invalid number. Send a positive number."); return
+
+    await state.clear()
+    db = await get_db()
+    users = await db.execute_fetchall("SELECT user_id FROM users")
+    total = len(users)
+    
+    progress_msg = await message.answer(f"🎁 Sending {amount} credits to {total} users... 0/{total}")
+    
+    success = 0
+    failed = 0
+    for i, user in enumerate(users):
+        try:
+            await add_credits(user[0], amount, "admin", f"Broadcast credits by admin {message.from_user.id}", expire=False)
+            success += 1
+        except Exception:
+            failed += 1
+        
+        if (i + 1) % 50 == 0 or (i + 1) == total:
+            try:
+                await progress_msg.edit_text(f"🎁 Sending {amount} credits... {i+1}/{total}")
+            except: pass
+        
+        await asyncio.sleep(0.02)
+    
+    await progress_msg.edit_text(
+        f"✅ **Broadcast Complete!**\n\n"
+        f"Credits: **{amount}** per user\n"
+        f"Success: **{success}**\n"
+        f"Failed: **{failed}**\n"
+        f"Total: **{total}**",
+        parse_mode="Markdown"
     )
