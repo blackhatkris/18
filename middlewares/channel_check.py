@@ -7,7 +7,8 @@ async def check_channels(bot: Bot, user_id: int) -> list:
     not_joined = []
     for ch in channels:
         try:
-            member = await bot.get_chat_member(chat_id=ch[0], user_id=user_id)
+            chat_id = int(ch[0])
+            member = await bot.get_chat_member(chat_id=chat_id, user_id=user_id)
             if member.status in ("left", "kicked"):
                 not_joined.append({"id": ch[0], "username": ch[1], "title": ch[2] or ch[1]})
         except Exception:
