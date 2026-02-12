@@ -42,6 +42,7 @@ async def dark_admin_menu(callback: CallbackQuery):
 
     buttons = [
         [InlineKeyboardButton(text="➕ Add Dark Collection", callback_data="adm_dark_add")],
+        [InlineKeyboardButton(text="🗑 Remove Dark Collection", callback_data="adm_dark_remove")],
         [InlineKeyboardButton(text=f"📬 Pending Orders ({pending_count})", callback_data="adm_dark_orders")],
         [InlineKeyboardButton(text="🔙 Back", callback_data="adm_menu")]
     ]
@@ -227,3 +228,37 @@ async def dark_reject(callback: CallbackQuery):
         await callback.bot.send_message(uid, "❌ Your dark content request was rejected. Contact support if needed.")
     except: pass
     await dark_orders_list(callback)
+
+
+# ===== Admin: Remove Dark Collection =====
+
+@router.callback_query(F.data == "adm_dark_remove")
+async def dark_remove_list(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    db = await get_db()
+    rows = await db.execute_fetchall(
+        "SELECT id, name, price FROM dark_collections ORDER BY created_at DESC"
+    )
+    if not rows:
+        await callback.answer("No dark collections to remove.", show_alert=True); return
+
+    buttons = []
+    for r in rows:
+        buttons.append([InlineKeyboardButton(
+            text=f"🗑 #{r[0]} — {r[1]} (₹{r[2]})",
+            callback_data=f"adm_dark_del_{r[0]}"
+        )])
+    buttons.append([InlineKeyboardButton(text="🔙 Back", callback_data="adm_dark_collections")])
+    kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+    await callback.message.edit_text("🗑 **Remove Dark Collection**\n\nTap to delete:", reply_markup=kb, parse_mode="Markdown")
+
+
+@router.callback_query(F.data.startswith("adm_dark_del_"))
+async def dark_remove_do(callback: CallbackQuery):
+    if not is_admin(callback.from_user.id): return
+    col_id = int(callback.data.split("_")[-1])
+    db = await get_db()
+    await db.execute("DELETE FROM dark_collections WHERE id = ?", (col_id,))
+    await db.commit()
+    await callback.answer("✅ Dark collection deleted!")
+    await dark_remove_list(callback)
