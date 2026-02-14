@@ -3,6 +3,7 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from services.credit_service import spend_credits, get_balance
 from services.collection_service import get_random_collection
+from middlewares.channel_check import check_channels
 from config import COLLECTION_COST, AUTO_DELETE_MINUTES
 
 router = Router()
@@ -10,25 +11,43 @@ router = Router()
 @router.callback_query(F.data == "get_collection")
 async def get_collection_handler(callback: CallbackQuery):
     user_id = callback.from_user.id
+
+    # ===== FORCE JOIN CHECK (closes loophole) =====
+    not_joined = await check_channels(callback.bot, user_id)
+    if not_joined:
+        buttons = []
+        for ch in not_joined:
+            join_type = ch.get("join_type", "join")
+            if join_type == "request":
+                buttons.append([InlineKeyboardButton(
+                    text=f"📩 Request to Join {ch['title']}", url=f"https://t.me/{ch['username']}"
+                )])
+            else:
+                buttons.append([InlineKeyboardButton(
+                    text=f"📢 Join {ch['title']}", url=f"https://t.me/{ch['username']}"
+                )])
+        buttons.append([InlineKeyboardButton(text="✅ I Joined / Requested", callback_data="check_join")])
+        kb = InlineKeyboardMarkup(inline_keyboard=buttons)
+        await callback.message.edit_text(
+            "🔒 **You left a required channel!**\n\n"
+            "Please join all channels below to continue:",
+            reply_markup=kb, parse_mode="Markdown"
+        )
+        return
+
+    # ===== BALANCE CHECK =====
     bal = await get_balance(user_id)
 
     if bal < COLLECTION_COST:
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🎁 Claim Daily Credits", callback_data="daily_claim")],
-            [
-                InlineKeyboardButton(text="👥 Referral", callback_data="referral"),
-                InlineKeyboardButton(text="🎟 Promo Code", callback_data="enter_promo")
-            ],
-            [
-                InlineKeyboardButton(text="💳 Buy Credits", callback_data="buy_credits"),
-                InlineKeyboardButton(text="💰 Wallet", callback_data="wallet")
-            ],
-            [InlineKeyboardButton(text="❓ Help", callback_data="help")]
+            [InlineKeyboardButton(text="🎁 Daily Reward", callback_data="daily_claim")],
+            [InlineKeyboardButton(text="👥 Refer & Earn", callback_data="referral")],
+            [InlineKeyboardButton(text="📋 Menu", callback_data="full_menu")]
         ])
         await callback.message.edit_text(
             f"❌ **Not enough credits!**\n\n"
             f"You need **{COLLECTION_COST}** credits.\nYour balance: **{bal}**\n\n"
-            f"Earn or buy credits below:",
+            f"Earn credits below:",
             reply_markup=kb, parse_mode="Markdown"
         )
         return
@@ -45,7 +64,6 @@ async def get_collection_handler(callback: CallbackQuery):
 
     await callback.message.delete()
 
-    # Send media files
     sent_messages = []
     for file_id in collection["file_ids"]:
         try:
@@ -62,7 +80,6 @@ async def get_collection_handler(callback: CallbackQuery):
                 except Exception:
                     pass
 
-    # Final message with "More Collection" button
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🎲 More Collection", callback_data="get_collection")]
     ])
@@ -72,7 +89,6 @@ async def get_collection_handler(callback: CallbackQuery):
     )
     sent_messages.append(final_msg)
 
-    # Schedule auto-delete
     if sent_messages:
         asyncio.create_task(_auto_delete(sent_messages, AUTO_DELETE_MINUTES * 60))
 
